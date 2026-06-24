@@ -16,9 +16,30 @@ namespace GlobalToast.ToastViews
 
         public virtual UIView ParentView
         {
-            get => Toast.ParentController != null ? 
-                        Toast.ParentController.View : 
-                        UIApplication.SharedApplication.KeyWindow;
+            get => Toast.ParentController != null ?
+                        Toast.ParentController.View :
+                        Key_Window();
+        }
+
+        // iOS 27 returns null from UIApplication.KeyWindow under the scene
+        // lifecycle; resolve via ConnectedScenes there. iOS 26 and earlier keep
+        // the old KeyWindow path (the scene lookup misbehaves there).
+        static UIWindow Key_Window()
+        {
+            if (UIDevice.CurrentDevice.CheckSystemVersion(27, 0))
+            {
+                foreach (var scene in UIApplication.SharedApplication.ConnectedScenes)
+                {
+                    if (scene is UIWindowScene window_scene)
+                    {
+                        foreach (var w in window_scene.Windows)
+                        {
+                            if (w.IsKeyWindow) return w;
+                        }
+                    }
+                }
+            }
+            return UIApplication.SharedApplication.KeyWindow;
         }
 
         public BaseToastView(Toast toast)
